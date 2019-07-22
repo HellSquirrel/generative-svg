@@ -74,7 +74,7 @@ function App() {
         {controlsMeta.map(({ id, label }) => {
           return (
             <div className="controlGroup" key={id}>
-              <label htmlFor={`i-${id}`}>{id}</label>
+              <label htmlFor={`i-${id}`}>{label}</label>
               <input
                 type=""
                 value={getValue(controlsMeta, controlsTexts, id)}
