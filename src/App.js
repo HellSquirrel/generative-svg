@@ -1,4 +1,6 @@
 import React, { useRef, useState } from "react";
+import { assocPath } from "ramda";
+import classNames from "classnames";
 import "./App.css";
 
 const countId = "count";
@@ -15,10 +17,12 @@ const controlsMeta = [
   { label: "rotation origin x", initialValue: 0, id: "origX" },
   { label: "rotation origin y", initialValue: 0, id: "origY" },
   { label: "initial opacity", initialValue: 1, id: "o" },
-  { label: "opacity step", initialValue: 0, id: "dO" }
+  { label: "end opacity", initialValue: 0, id: "oe" },
+  { label: "transition, ms", initialValue: 200, id: "tt" }
 ];
 
 function getStylesFromControls(controlsMeta, controls, i) {
+  const count = getValue(controlsMeta, controls, "count");
   const x = getValue(controlsMeta, controls, "x");
   const dx = getValue(controlsMeta, controls, "dx");
   const y = getValue(controlsMeta, controls, "y");
@@ -28,15 +32,17 @@ function getStylesFromControls(controlsMeta, controls, i) {
   const rot = getValue(controlsMeta, controls, "rot");
   const dRot = getValue(controlsMeta, controls, "dRot");
   const o = getValue(controlsMeta, controls, "o");
-  const dO = getValue(controlsMeta, controls, "dO");
+  const oe = getValue(controlsMeta, controls, "oe");
+  const tt = getValue(controlsMeta, controls, "tt");
+  const opacityStep = (o - oe) / count;
   return {
     position: "absolute",
     top: `${y + i * dy}%`,
     left: `${x + i * dx}%`,
-    transition: `all 200ms`,
+    transition: `all ${tt}ms`,
     transform: `translate(-50%, -50%) scale(${sc + i * dSc}) rotate(${rot +
       i * dRot}deg)`,
-    opacity: o - i * dO,
+    opacity: o - opacityStep * i,
     pointerEvents: "none"
   };
 }
@@ -53,9 +59,10 @@ const getValue = (controlsMeta, controls, idToFind) => {
 function App() {
   const input = useRef(null);
   const [file, setFile] = useState(null);
-  const [controls, setControls] = useState({});
-  const [controlsTexts, setControlsTexts] = useState({});
-  const count = getValue(controlsMeta, controls, countId);
+  const [controls, setControls] = useState([{}]);
+  const [controlsTexts, setControlsTexts] = useState([{}]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const count = getValue(controlsMeta, controls[currentSlide], countId);
 
   return (
     <div className="app">
@@ -78,19 +85,16 @@ function App() {
               <label htmlFor={`i-${id}`}>{label}</label>
               <input
                 type=""
-                value={getValue(controlsMeta, controlsTexts, id)}
+                value={getValue(controlsMeta, controlsTexts[currentSlide], id)}
                 placeholder={label}
                 className="controlInput"
                 onChange={event => {
                   let value = event.currentTarget.value;
-                  setControlsTexts(old => ({
-                    ...old,
-                    [id]: value
-                  }));
+                  setControlsTexts(assocPath([currentSlide, id], value));
 
                   const numberified = Number(value);
                   if (!Number.isNaN(numberified)) {
-                    setControls(old => ({ ...old, [id]: numberified }));
+                    setControls(assocPath([currentSlide, id], numberified));
                   }
                 }}
               />
@@ -105,9 +109,36 @@ function App() {
             className="image"
             alt=""
             key={index}
-            style={getStylesFromControls(controlsMeta, controls, index)}
+            style={getStylesFromControls(
+              controlsMeta,
+              controls[currentSlide],
+              index
+            )}
           />
         ))}
+      <div className="slides">
+        {[...Array(controls.length)].map((_, index) => (
+          <button
+            onClick={() => setCurrentSlide(index)}
+            className={classNames("slide", { active: index === currentSlide })}
+            key={index}
+          >
+            {index + 1}
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            setControls(controls.concat([{ ...controls[currentSlide] }]));
+            setControlsTexts(
+              controlsTexts.concat([{ ...controlsTexts[currentSlide] }])
+            );
+            setCurrentSlide(controls.length - 1);
+          }}
+          className="slide"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

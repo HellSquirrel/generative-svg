@@ -49,3 +49,32 @@
   width: 50px;
   margin-left: 5px;
 }
+
+.slides {
+  position: absolute;
+  display: flex;
+  margin: auto;
+  bottom: 50px;
+}
+
+.slide {
+  border: none;
+  border-radius: 50%;
+  display: inline-flex;
+  padding: 10px;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  background: #fff;
+  flex: 0 0 50px;
+  height: 50px;
+  outline: none;
+}
+
+.slide.active {
+  background: rgba(255, 255, 255, 0.548);
+}
+
+.slide + .slide {
+  margin-left: 5px;
+}
