@@ -3,8 +3,8 @@ import "./App.css";
 
 const countId = "count";
 const controlsMeta = [
-  { label: "x, %", initialValue: 0, id: "x" },
-  { label: "y, %", initialValue: 0, id: "y" },
+  { label: "x, %", initialValue: 50, id: "x" },
+  { label: "y, %", initialValue: 50, id: "y" },
   { label: "count", initialValue: 2, id: countId },
   { label: "step x", initialValue: 0, id: "dx" },
   { label: "step y", initialValue: 0, id: "dy" },
@@ -34,7 +34,8 @@ function getStylesFromControls(controlsMeta, controls, i) {
     top: `${y + i * dy}%`,
     left: `${x + i * dx}%`,
     transition: `all 200ms`,
-    transform: `scale(${sc + i * dSc}) rotate(${rot + i * dRot}deg)`,
+    transform: `translate(-50%, -50%) scale(${sc + i * dSc}) rotate(${rot +
+      i * dRot}deg)`,
     opacity: o - i * dO,
     pointerEvents: "none"
   };
