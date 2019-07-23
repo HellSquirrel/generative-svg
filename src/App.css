@@ -51,10 +51,12 @@
 }
 
 .slides {
-  position: absolute;
+  position: fixed;
   display: flex;
   margin: auto;
   bottom: 50px;
+  left: 50%;
+  transform: translate(-50%);
 }
 
 .slide {
