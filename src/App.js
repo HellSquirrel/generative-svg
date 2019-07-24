@@ -1,7 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { assocPath } from "ramda";
 import classNames from "classnames";
 import "./App.css";
+import anime from "animejs/lib/anime.es.js";
 
 const countId = "count";
 const controlsMeta = [
@@ -58,11 +59,17 @@ const getValue = (controlsMeta, controls, idToFind) => {
 
 function App() {
   const input = useRef(null);
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [controls, setControls] = useState([{}]);
   const [controlsTexts, setControlsTexts] = useState([{}]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const count = getValue(controlsMeta, controls[currentSlide], countId);
+  const fr = useRef(new FileReader());
+  fr.current.onload = e => {
+    setFiles(assocPath([currentSlide], e.target.result));
+  };
+
+  const file = files[currentSlide];
 
   return (
     <div className="app">
@@ -74,7 +81,7 @@ function App() {
           onChange={() => {
             const fileSource = input.current.files[0];
             if (fileSource) {
-              setFile(URL.createObjectURL(fileSource));
+              fr.current.readAsText(fileSource);
             }
           }}
           ref={input}
@@ -102,20 +109,34 @@ function App() {
           );
         })}
       </div>
-      {file &&
-        [...Array(count)].map((_, index) => (
-          <img
-            src={file}
-            className="image"
-            alt=""
-            key={index}
-            style={getStylesFromControls(
-              controlsMeta,
-              controls[currentSlide],
-              index
-            )}
-          />
-        ))}
+      {[...Array(controls.length)].map((_, index) => {
+        const file = files[index];
+        if (file) {
+          return (
+            <div
+              key={index}
+              style={{ display: index === currentSlide ? "block" : "none" }}
+              className={classNames("paths", `p-${index}`)}
+            >
+              {[...Array(count)].map((_, index) => (
+                <div
+                  className="image"
+                  alt=""
+                  key={index}
+                  style={getStylesFromControls(
+                    controlsMeta,
+                    controls[currentSlide],
+                    index
+                  )}
+                  dangerouslySetInnerHTML={{ __html: file }}
+                />
+              ))}
+            </div>
+          );
+        }
+
+        return null;
+      })}
       <div className="slides">
         {[...Array(controls.length)].map((_, index) => (
           <button
@@ -137,6 +158,30 @@ function App() {
           className="slide"
         >
           +
+        </button>
+        <button
+          className="slide"
+          onClick={() => {
+            setCurrentSlide(0);
+            console.log("currentSlide is", currentSlide);
+            const targets = document.querySelectorAll(`.paths.p-0 path`);
+
+            const nextTargets = document.querySelector(`.paths.p-1 path`);
+
+            console.log(targets, nextTargets);
+            anime({
+              targets,
+              d: nextTargets.getAttribute("d"),
+              duration: 1000,
+              loop: true,
+              direction: "alternate",
+              easing: "linear"
+            });
+          }}
+        >
+          <span role="img" aria-label="play">
+            ▶️
+          </span>
         </button>
       </div>
     </div>
