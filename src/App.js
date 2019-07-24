@@ -19,7 +19,7 @@ const controlsMeta = [
   { label: "rotation origin y", initialValue: 0, id: "origY" },
   { label: "initial opacity", initialValue: 1, id: "o" },
   { label: "end opacity", initialValue: 0, id: "oe" },
-  { label: "transition, ms", initialValue: 200, id: "tt" }
+  { label: "transition, ms", initialValue: 1000, id: "tt" }
 ];
 
 function getStylesFromControls(controlsMeta, controls, i) {
@@ -40,7 +40,7 @@ function getStylesFromControls(controlsMeta, controls, i) {
     position: "absolute",
     top: `${y + i * dy}%`,
     left: `${x + i * dx}%`,
-    transition: `all ${tt}ms`,
+    transition: `all ${tt}ms linear`,
     transform: `translate(-50%, -50%) scale(${sc + i * dSc}) rotate(${rot +
       i * dRot}deg)`,
     opacity: o - opacityStep * i,
@@ -76,36 +76,48 @@ function App() {
   useEffect(() => {
     if (
       animate &&
-      animationStep < controls.length - 1 &&
+      animationStep < controls.length &&
       file &&
-      files[animationStep + 1]
+      files[animationStep] &&
+      animationStep
     ) {
-      setAnimationStep(animationStep + 1);
+      let done = false;
       const d1 = shapes.current.querySelector("path").getAttribute("d");
       const elements = shapes.current.querySelectorAll("path");
       const d2Container = document.createElement("div");
-      d2Container.innerHTML = files[animationStep + 1];
+      d2Container.innerHTML = files[animationStep];
       const d2 = d2Container.querySelector("path").getAttribute("d");
       const interpolator = interpolate(d1, d2, {
         maxSegmentLength: 0.5
       });
-      let i = 0;
-      const speed = 0.01;
+      const transitionTime = getValue(
+        controlsMeta,
+        controls[animationStep],
+        "tt"
+      );
+
+      const speed = 1 / transitionTime;
+      const stamp = performance.now();
       const run = () => {
         if (!animate) return;
+        const delta = performance.now() - stamp;
         requestAnimationFrame(() => {
-          if (i * speed < 1) {
+          if (delta < transitionTime) {
             [...elements].forEach(e =>
-              e.setAttribute("d", interpolator(i * speed))
+              e.setAttribute("d", interpolator(delta * speed))
             );
-            i++;
             run();
+          } else if (!done) {
+            done = true;
+            if (animationStep + 1 < controls.length) {
+              setAnimationStep(animationStep + 1);
+            }
           }
         });
       };
       run();
     }
-  }, [animate, animationStep, controls.length, file, files]);
+  }, [animate, animationStep, controls, controls.length, file, files]);
 
   const fr = useRef(new FileReader());
   fr.current.onload = e => {
@@ -193,7 +205,7 @@ function App() {
           className="slide"
           onClick={() => {
             setAnimate(!animate);
-            setAnimationStep(0);
+            setAnimationStep(1);
           }}
         >
           {animate ? (
