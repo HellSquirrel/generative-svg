@@ -5,6 +5,7 @@
   "dependencies": {
     "animejs": "^3.0.1",
     "classnames": "^2.2.6",
+    "flubber": "^0.4.2",
     "ramda": "^0.26.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",

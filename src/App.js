@@ -2,19 +2,19 @@ import React, { useRef, useState, useEffect } from "react";
 import { assocPath } from "ramda";
 import classNames from "classnames";
 import "./App.css";
-import anime from "animejs/lib/anime.es.js";
+import { interpolate } from "flubber";
 
 const countId = "count";
 const controlsMeta = [
   { label: "x, %", initialValue: 50, id: "x" },
   { label: "y, %", initialValue: 50, id: "y" },
-  { label: "count", initialValue: 2, id: countId },
+  { label: "count", initialValue: 10, id: countId },
   { label: "step x", initialValue: 0, id: "dx" },
   { label: "step y", initialValue: 0, id: "dy" },
   { label: "initial scale", initialValue: 1, id: "sc" },
   { label: "scale step", initialValue: 0, id: "dSc" },
   { label: "initial rotation, deg", initialValue: 0, id: "rot" },
-  { label: "rotation step, deg", initialValue: 0, id: "dRot" },
+  { label: "rotation step, deg", initialValue: 4, id: "dRot" },
   { label: "rotation origin x", initialValue: 0, id: "origX" },
   { label: "rotation origin y", initialValue: 0, id: "origY" },
   { label: "initial opacity", initialValue: 1, id: "o" },
@@ -59,17 +59,58 @@ const getValue = (controlsMeta, controls, idToFind) => {
 
 function App() {
   const input = useRef(null);
+  const shapes = useRef(null);
   const [files, setFiles] = useState([]);
   const [controls, setControls] = useState([{}]);
   const [controlsTexts, setControlsTexts] = useState([{}]);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const count = getValue(controlsMeta, controls[currentSlide], countId);
+  const [animate, setAnimate] = useState(false);
+  const [animationStep, setAnimationStep] = useState(0);
+
+  const count = animate
+    ? getValue(controlsMeta, controls[animationStep], countId)
+    : getValue(controlsMeta, controls[animationStep], countId);
+
+  const file = animate ? files[0] : files[currentSlide];
+
+  useEffect(() => {
+    if (
+      animate &&
+      animationStep < controls.length - 1 &&
+      file &&
+      files[animationStep + 1]
+    ) {
+      setAnimationStep(animationStep + 1);
+      const d1 = shapes.current.querySelector("path").getAttribute("d");
+      const elements = shapes.current.querySelectorAll("path");
+      const d2Container = document.createElement("div");
+      d2Container.innerHTML = files[animationStep + 1];
+      const d2 = d2Container.querySelector("path").getAttribute("d");
+      const interpolator = interpolate(d1, d2, {
+        maxSegmentLength: 0.5
+      });
+      let i = 0;
+      const speed = 0.01;
+      const run = () => {
+        if (!animate) return;
+        requestAnimationFrame(() => {
+          if (i * speed < 1) {
+            [...elements].forEach(e =>
+              e.setAttribute("d", interpolator(i * speed))
+            );
+            i++;
+            run();
+          }
+        });
+      };
+      run();
+    }
+  }, [animate, animationStep, controls.length, file, files]);
+
   const fr = useRef(new FileReader());
   fr.current.onload = e => {
     setFiles(assocPath([currentSlide], e.target.result));
   };
-
-  const file = files[currentSlide];
 
   return (
     <div className="app">
@@ -109,34 +150,23 @@ function App() {
           );
         })}
       </div>
-      {[...Array(controls.length)].map((_, index) => {
-        const file = files[index];
-        if (file) {
-          return (
+      <div ref={shapes}>
+        {file &&
+          [...Array(count)].map((_, index) => (
             <div
+              className="image"
+              alt=""
               key={index}
-              style={{ display: index === currentSlide ? "block" : "none" }}
-              className={classNames("paths", `p-${index}`)}
-            >
-              {[...Array(count)].map((_, index) => (
-                <div
-                  className="image"
-                  alt=""
-                  key={index}
-                  style={getStylesFromControls(
-                    controlsMeta,
-                    controls[currentSlide],
-                    index
-                  )}
-                  dangerouslySetInnerHTML={{ __html: file }}
-                />
-              ))}
-            </div>
-          );
-        }
+              style={getStylesFromControls(
+                controlsMeta,
+                controls[animate ? animationStep : currentSlide],
+                index
+              )}
+              dangerouslySetInnerHTML={{ __html: file }}
+            />
+          ))}
+      </div>
 
-        return null;
-      })}
       <div className="slides">
         {[...Array(controls.length)].map((_, index) => (
           <button
@@ -153,7 +183,7 @@ function App() {
             setControlsTexts(
               controlsTexts.concat([{ ...controlsTexts[currentSlide] }])
             );
-            setCurrentSlide(controls.length - 1);
+            setCurrentSlide(controls.length);
           }}
           className="slide"
         >
@@ -162,26 +192,19 @@ function App() {
         <button
           className="slide"
           onClick={() => {
-            setCurrentSlide(0);
-            console.log("currentSlide is", currentSlide);
-            const targets = document.querySelectorAll(`.paths.p-0 path`);
-
-            const nextTargets = document.querySelector(`.paths.p-1 path`);
-
-            console.log(targets, nextTargets);
-            anime({
-              targets,
-              d: nextTargets.getAttribute("d"),
-              duration: 1000,
-              loop: true,
-              direction: "alternate",
-              easing: "linear"
-            });
+            setAnimate(!animate);
+            setAnimationStep(0);
           }}
         >
-          <span role="img" aria-label="play">
-            ▶️
-          </span>
+          {animate ? (
+            <span role="img" aria-label="pause">
+              ◾
+            </span>
+          ) : (
+            <span role="img" aria-label="play">
+              ▶
+            </span>
+          )}
         </button>
       </div>
     </div>
