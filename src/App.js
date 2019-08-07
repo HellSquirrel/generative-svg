@@ -3,12 +3,19 @@ import { assocPath } from "ramda";
 import classNames from "classnames";
 import "./App.css";
 import { interpolate } from "flubber";
+import { getStub } from "./svgStub";
+import svgpath from "svgpath";
+
+const viewBox = {
+  width: 500,
+  height: 500
+};
 
 const countId = "count";
 const controlsMeta = [
   { label: "x, %", initialValue: 50, id: "x" },
   { label: "y, %", initialValue: 50, id: "y" },
-  { label: "count", initialValue: 10, id: countId },
+  { label: "count", initialValue: 5, id: countId },
   { label: "step x", initialValue: 0, id: "dx" },
   { label: "step y", initialValue: 0, id: "dy" },
   { label: "initial scale", initialValue: 1, id: "sc" },
@@ -86,7 +93,8 @@ function App() {
       const elements = shapes.current.querySelectorAll("path");
       const d2Container = document.createElement("div");
       d2Container.innerHTML = files[animationStep];
-      const d2 = d2Container.querySelector("path").getAttribute("d");
+      const path2 = d2Container.querySelector("path");
+      const d2 = path2.getAttribute("d");
       const interpolator = interpolate(d1, d2, {
         maxSegmentLength: 0.5
       });
@@ -103,9 +111,9 @@ function App() {
         const delta = performance.now() - stamp;
         requestAnimationFrame(() => {
           if (delta < transitionTime) {
-            [...elements].forEach(e =>
-              e.setAttribute("d", interpolator(delta * speed))
-            );
+            [...elements].forEach(e => {
+              e.setAttribute("d", interpolator(delta * speed));
+            });
             run();
           } else if (!done) {
             done = true;
@@ -121,7 +129,27 @@ function App() {
 
   const fr = useRef(new FileReader());
   fr.current.onload = e => {
-    setFiles(assocPath([currentSlide], e.target.result));
+    const svg = e.target.result;
+    const fragment = document.createElement("div");
+    fragment.innerHTML = svg;
+    const [_, __, currentWidth, currentHeight] = fragment
+      .querySelector("svg")
+      .getAttribute("viewBox")
+      .split(" ");
+
+    const pathEl = fragment.querySelector("path");
+    const svgEl = fragment.querySelector("svg");
+
+    const dx = 0.5 * (viewBox.width - Number(currentWidth));
+    const dy = 0.5 * (viewBox.height - Number(currentHeight));
+    const d = svgpath(pathEl.getAttribute("d"))
+      .translate(dx, dy)
+      .toString();
+
+    pathEl.setAttribute("d", d);
+
+    const svgText = getStub(viewBox.width, viewBox.height, svgEl.innerHTML);
+    setFiles(assocPath([currentSlide], svgText));
   };
 
   return (
@@ -178,6 +206,16 @@ function App() {
             />
           ))}
       </div>
+      {/* <div
+        className="image"
+        alt=""
+        style={getStylesFromControls(
+          controlsMeta,
+          controls[animate ? animationStep : currentSlide],
+          0
+        )}
+        dangerouslySetInnerHTML={{ __html: files[1] }}
+      /> */}
 
       <div className="slides">
         {[...Array(controls.length)].map((_, index) => (
