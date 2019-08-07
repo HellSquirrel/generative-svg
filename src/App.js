@@ -48,8 +48,9 @@ function getStylesFromControls(controlsMeta, controls, i) {
     top: `${y + i * dy}%`,
     left: `${x + i * dx}%`,
     transition: `all ${tt}ms linear`,
-    transform: `translate(-50%, -50%) scale(${sc + i * dSc}) rotate(${rot +
-      i * dRot}deg)`,
+    transform: `translate(-50%, -50%) rotate(${rot + i * dRot}deg)`,
+    width: `${viewBox.width * (sc + i * dSc)}px`,
+    height: `${viewBox.width * (sc + i * dSc)}px`,
     opacity: o - opacityStep * i,
     pointerEvents: "none"
   };
@@ -147,6 +148,7 @@ function App() {
       .toString();
 
     pathEl.setAttribute("d", d);
+    pathEl.setAttribute("vector-effect", "non-scaling-stroke");
 
     const svgText = getStub(viewBox.width, viewBox.height, svgEl.innerHTML);
     setFiles(assocPath([currentSlide], svgText));
